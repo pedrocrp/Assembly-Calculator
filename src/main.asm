@@ -33,7 +33,7 @@ tam_msg_resultado EQU $-msg_resultado
 
 ; ariaveis auxiliares
 ;number_format db "%d", 10, 0  ; Formato para imprimir números, seguido de nova linha
-buffer db 12 dup(0)           ; Buffer para armazenar a string do número, ajuste o tamanho conforme necessário
+;buffer db 12 dup(0)           ; Buffer para armazenar a string do número, ajuste o tamanho conforme necessário
 
 section .bss
 ;variaveis globais (no contexto desse arquivo)
@@ -42,9 +42,6 @@ tam_nome resb 4
 precisao resb 1
 opcao resd 1
 
-;variaveis auxiliares
-tam_lido resd 1
-resultado_eax resd 1
 
 section .text
 extern soma                   ; Assume que soma está em outro arquivo
@@ -52,7 +49,10 @@ extern subtracao              ; Assume que subtracao está em outro arquivo
 global _start
 global itoa                   ; Torna a função itoa global
 
+%define tam_lido [ebp-4]
+%define resultado_eax [ebp-8]
 _start:
+    enter 8,0
     call boas_vindas
 
     call pergunta_precisao
@@ -70,15 +70,10 @@ _start:
     cmp byte [opcao], 2
     je op_sub
 
-    ; Exemplo de chamada para a função subtração com 32 bits
-    ;push 20                    ; Argumento 2
-    ;push 10                    ; Argumento 1
-    ;push precisao                     ; Indicador de largura (32 bits)
-    ; call subtracao
-    ;call soma
-
-    ; Termina o programa
+; Termina o programa
 Fim:
+    leave                       ; Remove as variaveis locais da pilha
+
     mov eax, 1
     xor ebx, ebx
     int 0x80
@@ -86,12 +81,18 @@ Fim:
 op_soma:
     push 20                    ; Argumento 2
     push 10                    ; Argumento 1
-    push precisao 
+    push precisao
     call soma
 
-    add esp, 9
-
     call mostra_resultado
+
+    ; Exibe a mensagem
+    mov eax, 4
+    mov ebx, 1
+    mov ecx, msg_boas_vindas_0
+    mov edx, tam_msg_boas_vindas_0 ; Tamanho da mensagem "Resultado: "
+    int 0x80
+
     jmp Fim
 
 op_sub:
@@ -107,7 +108,7 @@ op_sub:
 
 ; Função itoa: Converte um número em eax para uma string ASCII
 ; Recebe: eax = número, edi = endereço do buffer de saída
-; Retorna: nada, mas o buffer em edi terá a string
+; Retorna: nada, mas o buffer em eax terá a string
 %define buffer_arg [ebp+12]
 %define numero [ebp+8]
 itoa:
@@ -145,7 +146,7 @@ itoa:
     lea eax, [ecx]             ; Se não, ajusta eax para o início da string numérica
     .done:
     leave
-    ret 16 ;buffer tem 12 bytes + 4 bytes do número
+    ret 8 ;endereco do buffer tem 4 bytes + 4 bytes do número
 
 ;Função printf: para saída de dadaos 
 ;Recebe: ponteiro para string e número de bytes a serem escritos
@@ -270,13 +271,24 @@ pergunta_precisao:
 
 ; Assume que o resultado esterá em eax, visto que as funções devem 
 ; retornar a saída nesse registrador
+%define buffer_arg2 dword [ebp-4]
+%define buffer_arg1 dword [ebp-8]
+%define buffer_arg0 dword [ebp-12]
+%define end_buffer ebp
 mostra_resultado:
-    push ebp
-    mov ebp, esp
+    enter 12, 0
 
     ; Converte o resultado em eax para string
     ;mov edi, buffer            ; Endereço do buffer para armazenar a string
-    push buffer
+    ;mov buffer_arg2, dword 0
+    ;sub buffer_arg2, 30
+    ;mov buffer_arg1, dword 0
+    ;mov buffer_arg0, dword 0
+    ;push buffer_arg2
+    ;push buffer_arg1
+    sub dword end_buffer, 12
+
+    push dword end_buffer
     push eax
     call itoa                  ; Converte eax para string
 
@@ -287,11 +299,25 @@ mostra_resultado:
     mov edx, tam_msg_resultado ; Tamanho da mensagem "Resultado: "
     int 0x80
 
+    ; Exibe a mensagem
+    mov eax, 4
+    mov ebx, 1
+    mov ecx, msg_boas_vindas_0
+    mov edx, tam_msg_boas_vindas_0 ; Tamanho da mensagem "Resultado: "
+    int 0x80
+
     ; Exibe o número convertido
     mov eax, 4
     mov ebx, 1
-    mov ecx, buffer            ; Endereço do buffer com o número convertido
+    mov ecx, end_buffer            ; Endereço do buffer com o número convertido
     mov edx, 12                ; Tamanho do buffer, ajuste conforme necessário
+    int 0x80
+
+    ; Exibe a mensagem
+    mov eax, 4
+    mov ebx, 1
+    mov ecx, msg_boas_vindas_1
+    mov edx, tam_msg_boas_vindas_1 ; Tamanho da mensagem "Resultado: "
     int 0x80
 
     leave
