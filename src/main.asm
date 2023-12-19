@@ -285,10 +285,8 @@ boas_vindas:
     leave
     ret
 
-%define arg_precisao [ebp+8]
 pergunta_precisao:
-    push ebp
-    mov ebp, esp
+    enter 0,0
 
     ;imprime "Vai trabalhar com 16 ou 32 bits (digite 0 para 16, e 1 para 32)"
     push tam_msg_precisao
@@ -297,8 +295,9 @@ pergunta_precisao:
 
     ;salva a precisao
     push byte 2
-    push dword arg_precisao
+    push dword precisao
     call scanf_s
+    sub byte [precisao], 48        ; Transforma em ASCII
 
     leave
     ret
