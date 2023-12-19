@@ -31,6 +31,9 @@ tam_msg_precisao EQU $-msg_precisao
 msg_resultado db "Resultado: ", 0
 tam_msg_resultado EQU $-msg_resultado
 
+negativo_simbolo db '-'      ; String contendo o caractere '-'
+tam_negativo_simbolo EQU 1        ; Comprimento da string
+
 ; ariaveis auxiliares
 ;number_format db "%d", 10, 0  ; Formato para imprimir números, seguido de nova linha
 ;buffer db 12 dup(0)           ; Buffer para armazenar a string do número, ajuste o tamanho conforme necessário
@@ -153,8 +156,8 @@ preencher_com_zeros:
     ; Ajusta o ponteiro do buffer para o início da string
     mov eax, ebp                ; Endereço inicial do buffer
     add eax, 12                 ; Esse de fato é o endereço e n o conteúdo ebp+12
-    cmp byte [eax], '-'        ; Verifica se o primeiro caractere é '-'
-    je .done                   ; Se for, a string já está correta
+    ;cmp byte [eax], '-'        ; Verifica se o primeiro caractere é '-'
+    ;je .done                   ; Se for, a string já está correta
     lea eax, [ecx]             ; Se não, ajusta eax para o início da string numérica
     .done:
     mov aux, eax
@@ -326,9 +329,19 @@ mostra_resultado:
     int 0x80
 
     ; Imprime número convertido
-    mov ecx, pont_string  ; Endereço do início da string
-    jmp imprimir_string   ; Pula para o início da rotina de impressão
+    ; Verifica se o número é negativo
+    mov eax, resultado
+    test eax, eax
+    jg iniciar_impressao
+    ;se for negativo, imprime o sinal
+    mov eax, 4
+    mov ebx, 1
+    mov ecx, negativo_simbolo          ; Endereço do bsinal '-'
+    mov edx, tam_negativo_simbolo      ; Tamanho do sinal - 1 byte
+    int 0x80
 
+iniciar_impressao:
+    mov ecx, pont_string  ; Endereço do início da string
 imprimir_string:
     mov al, [ecx]         ; Carrega o byte da string em AL
     test al, al            ; Verifica se é o caractere nulo (fim da string)
