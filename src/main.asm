@@ -84,14 +84,8 @@ op_soma:
     push precisao
     call soma
 
+    push eax
     call mostra_resultado
-
-    ; Exibe a mensagem
-    mov eax, 4
-    mov ebx, 1
-    mov ecx, msg_boas_vindas_0
-    mov edx, tam_msg_boas_vindas_0 ; Tamanho da mensagem "Resultado: "
-    int 0x80
 
     jmp Fim
 
@@ -101,8 +95,9 @@ op_sub:
     push precisao 
     call subtracao
     
-    add esp, 9
+    add esp, 9 ;ainda ajustar pra propria subtracao desempilhar
 
+    push eax
     call mostra_resultado
     jmp Fim
 
@@ -111,17 +106,33 @@ op_sub:
 ; Retorna: nada, mas o buffer em eax terá a string
 %define buffer_arg [ebp+12]
 %define numero [ebp+8]
+%define aux [ebp-4]
 itoa:
-    push ebp
-    mov ebp, esp
-    mov edi, buffer_arg
+    enter 4,0
+
+    pusha
+    
+    ;zera toda a string, inicialmente
+    mov ecx, 12             ; Número de bytes a serem preenchidos
+    mov edi, ebp            ; Endereço inicial do buffer
+    add edi, 12             ; Esse de fato é o endereço e n o conteúdo ebp+12
+    sub al, al              ; Valor a ser inserido (zero)
+preencher_com_zeros:
+    mov [edi], al               ; Preenche o byte atual com zero
+    inc edi                     ; Avança para o próximo byte
+    loop preencher_com_zeros    ; Repete até que todos os bytes (12) sejam preenchidos
+
+    mov edi, ebp                ; Endereço inicial do buffer
+    add edi, 12                 ; Esse de fato é o endereço e n o conteúdo ebp+12
 
     mov ebx, 10                 ; Divisor para a conversão de base
+
     mov ecx, edi                ; Ponteiro para o final da string no buffer
     add ecx, 11                 ; Ajustar para o tamanho do buffer
-    mov byte [ecx], 0           ; Caractere nulo no final
+    ;mov byte [ecx], 0           ; Caractere nulo no final
 
     ; Verifica se o número é negativo
+    mov eax, numero
     test eax, eax
     jge .positive               ; Se não for negativo, pula para a conversão positiva
     neg eax                     ; Negativa o número se for negativo
@@ -132,7 +143,7 @@ itoa:
     ; Loop para converter o número em string
     .repeat:
         dec ecx                 ; Move para trás no buffer
-        xor edx, edx            ; Limpa edx para a divisão
+        sub edx, edx            ; Limpa edx para a divisão
         div ebx                 ; Divide eax por 10, resultado em eax, resto em edx
         add dl, '0'             ; Converte o resto em caractere ASCII
         mov [ecx], dl           ; Armazena o caractere no buffer
@@ -140,21 +151,28 @@ itoa:
         jnz .repeat             ; Se não for, continua o loop
 
     ; Ajusta o ponteiro do buffer para o início da string
-    mov eax, buffer_arg        ; Reseta o ponteiro do buffer para o início
+    mov eax, ebp                ; Endereço inicial do buffer
+    add eax, 12                 ; Esse de fato é o endereço e n o conteúdo ebp+12
     cmp byte [eax], '-'        ; Verifica se o primeiro caractere é '-'
     je .done                   ; Se for, a string já está correta
     lea eax, [ecx]             ; Se não, ajusta eax para o início da string numérica
     .done:
+    mov aux, eax
+    popa
+    mov eax, aux
     leave
     ret 8 ;endereco do buffer tem 4 bytes + 4 bytes do número
 
 ;Função printf: para saída de dadaos 
 ;Recebe: ponteiro para string e número de bytes a serem escritos
+;Retorna: nada
 %define str dword [ebp+8]
 %define num_bytes dword [ebp+12]
 printf:
     push ebp
     mov ebp, esp
+
+    pusha
 
     mov eax, 4
     mov ebx, 1
@@ -162,16 +180,21 @@ printf:
     mov edx, num_bytes
     int 0x80
 
+    popa
+
     leave
     ret 8               ;ja desempilha os dois parametros str e num_bytes
 
 ;Função scanf_s: para leitura de string 
 ;Recebe: ponteiro para armazenar string e número de bytes a serem escritos
+;Retorna: em eax o número de bytes lidos
 %define num_bytes dword [ebp+12]
 %define str dword [ebp+8]
+%define aux [ebp-4]
 scanf_s:
-    push ebp
-    mov ebp, esp
+    enter 4,0
+
+    pusha
 
     mov eax, 3
     mov ebx, 1
@@ -179,10 +202,16 @@ scanf_s:
     mov edx, num_bytes
     int 0x80
 
+    mov aux, eax
+    popa
+    mov eax, aux
+
     leave
     ret 8               ;ja desempilha os dois parametros str e num_bytes
 
 ;Função imprime_menu
+; Recebe: nada
+; Retorna: nada
 imprime_menu:
     push ebp
     mov ebp, esp
@@ -216,6 +245,8 @@ imprime_menu:
     ret
 
 ;Funcao boas_vindas
+; Recebe: nada
+; Retorna: nada
 boas_vindas: 
     push ebp
     mov ebp, esp
@@ -230,8 +261,8 @@ boas_vindas:
     push nome
     call scanf_s
 
-    mov dword [tam_nome], eax
-    sub dword [tam_nome], 0x1
+    mov dword [tam_nome], eax ;No eax tem o número de bytes lidos no scanf_s
+    sub dword [tam_nome], 0x1 ;Removendo o ENTER
 
     ;imprime "Hola, "
     push tam_msg_boas_vindas_0
@@ -269,56 +300,51 @@ pergunta_precisao:
     leave
     ret
 
-; Assume que o resultado esterá em eax, visto que as funções devem 
-; retornar a saída nesse registrador
+; Recebe o valor inteiro do resultado para imprimir 
+; Retorna: nada
 %define buffer_arg2 dword [ebp-4]
 %define buffer_arg1 dword [ebp-8]
 %define buffer_arg0 dword [ebp-12]
-%define end_buffer ebp
+%define pont_string [ebp-16]
+%define resultado dword [ebp+8]
 mostra_resultado:
-    enter 12, 0
+    enter 16, 0
 
-    ; Converte o resultado em eax para string
-    ;mov edi, buffer            ; Endereço do buffer para armazenar a string
-    ;mov buffer_arg2, dword 0
-    ;sub buffer_arg2, 30
-    ;mov buffer_arg1, dword 0
-    ;mov buffer_arg0, dword 0
-    ;push buffer_arg2
-    ;push buffer_arg1
-    sub dword end_buffer, 12
+    mov esi, ebp
+    sub dword esi, 12 ;esi = ebp-12 = endereco buffer_arg0
 
-    push dword end_buffer
-    push eax
-    call itoa                  ; Converte eax para string
+    push dword esi
+    push resultado
+    call itoa                   ; Converte eax para string
+    mov pont_string, eax        ;salva ponteiro para string
 
-    ; Exibe a mensagem
+    ; Imprime a mensagem "Resultado"
     mov eax, 4
     mov ebx, 1
     mov ecx, msg_resultado
     mov edx, tam_msg_resultado ; Tamanho da mensagem "Resultado: "
     int 0x80
 
-    ; Exibe a mensagem
+    ; Imprime número convertido
+    mov ecx, pont_string  ; Endereço do início da string
+    jmp imprimir_string   ; Pula para o início da rotina de impressão
+
+imprimir_string:
+    mov al, [ecx]         ; Carrega o byte da string em AL
+    test al, al            ; Verifica se é o caractere nulo (fim da string)
+    jz  fim_impressao     ; Se for, termina a impressão
+
+    ; Imprime o byte atual
     mov eax, 4
     mov ebx, 1
-    mov ecx, msg_boas_vindas_0
-    mov edx, tam_msg_boas_vindas_0 ; Tamanho da mensagem "Resultado: "
+    mov ecx, ecx          ; Endereço do buffer com o byte atual
+    mov edx, 1            ; Tamanho do buffer (apenas 1 byte)
     int 0x80
 
-    ; Exibe o número convertido
-    mov eax, 4
-    mov ebx, 1
-    mov ecx, end_buffer            ; Endereço do buffer com o número convertido
-    mov edx, 12                ; Tamanho do buffer, ajuste conforme necessário
-    int 0x80
+    inc ecx               ; Avança para o próximo byte
+    jmp imprimir_string   ; Repete o processo para o próximo byte
 
-    ; Exibe a mensagem
-    mov eax, 4
-    mov ebx, 1
-    mov ecx, msg_boas_vindas_1
-    mov edx, tam_msg_boas_vindas_1 ; Tamanho da mensagem "Resultado: "
-    int 0x80
+fim_impressao:
 
     leave
-    ret
+    ret 4                   ; resultado (numérico)
