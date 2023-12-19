@@ -4,9 +4,11 @@ section .text
 ; Função de Soma
 ; Argumentos: Dois números na pilha e um indicador de largura (0 para 16 bits, 1 para 32 bits)
 ; Retorna: Resultado da soma em EAX
+%define aux [ebp-4]
 soma:
-    push ebp
-    mov ebp, esp
+    enter 4,0
+
+    pusha
 
     ; Verifica a largura dos operandos
     movzx ecx, byte [ebp+8]  ; Indicador de largura (0 ou 1)
@@ -27,6 +29,16 @@ soma_32bits:
     mov ebx, [ebp+16] ; Argumento 2
     add eax, ebx
 
-end_function:
-    pop ebp                  ; Restaura o valor antigo de ebp
+end_function_16:
+    movzx aux, ax
+    popa
+    movzx ax, aux
+    leave
+    ret                      ; Retorna para o endereço no topo da pilha
+
+end_function_32:
+    mov aux, eax
+    popa
+    mov eax, aux
+    leave
     ret                      ; Retorna para o endereço no topo da pilha
