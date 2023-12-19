@@ -21,16 +21,17 @@ soma_16bits:
     movzx eax, word [ebp+12] ; Argumento 1
     movzx ebx, word [ebp+16] ; Argumento 2
     add ax, bx
-    jmp end_function          ; Pula para o final da função
+    jmp end_function_16          ; Pula para o final da função
 
 soma_32bits:
     ; Realiza a soma de 32 bits
     mov eax, [ebp+12] ; Argumento 1
     mov ebx, [ebp+16] ; Argumento 2
     add eax, ebx
+    jmp end_function_32          ; Pula para o final da função
 
 end_function_16:
-    movzx aux, ax
+    mov aux, ax
     popa
     movzx ax, aux
     leave
