@@ -1,3 +1,6 @@
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;VARIÁVEIS;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 section .data
 ;variaveis globais (no contexto desse arquivo): mensagens de texto
 msg_nome db "Bem-vindo. Digite seu nome:", 0dH, 0ah
@@ -34,9 +37,18 @@ tam_msg_resultado EQU $-msg_resultado
 negativo_simbolo db '-'      ; String contendo o caractere '-'
 tam_negativo_simbolo EQU 1        ; Comprimento da string
 
+msg_res_so_far db "res_eax até agora", 0dH, 0ah
+tam_msg_res_so_far EQU $-msg_res_so_far
+
+msg_ecx db "res_ecx agora - novo bit", 0dH, 0ah
+tam_msg_ecx EQU $-msg_ecx
+
+msg_ecx2 db "res_ecx tirando '0'", 0dH, 0ah
+tam_msg_ecx2 EQU $-msg_ecx2
+
 ; ariaveis auxiliares
 ;number_format db "%d", 10, 0  ; Formato para imprimir números, seguido de nova linha
-;buffer db 12 dup(0)           ; Buffer para armazenar a string do número, ajuste o tamanho conforme necessário
+buffer db 12 dup(0)           ; Buffer para armazenar a string do número, ajuste o tamanho conforme necessário
 
 section .bss
 ;variaveis globais (no contexto desse arquivo)
@@ -45,13 +57,15 @@ tam_nome resb 4
 precisao resb 1
 opcao resd 1
 
-
 section .text
 extern soma                   ; Assume que soma está em outro arquivo
 extern subtracao              ; Assume que subtracao está em outro arquivo
 global _start
 global itoa                   ; Torna a função itoa global
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;MAIN;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 %define tam_lido [ebp-4]
 %define resultado_eax [ebp-8]
 _start:
@@ -82,8 +96,31 @@ Fim:
     int 0x80
 
 op_soma:
-    push 20                    ; Argumento 2
-    push 10                    ; Argumento 1
+    ;push 20                    ; Argumento 2
+    ;push 10                    ; Argumento 1
+    call scanf_32
+
+    ;push 12
+    ;push eax
+    ;call printf
+
+    ;push buffer
+    ;push eax
+    ;call itoa
+
+    ;mov eax, 4
+    ;mov ebx, 0
+    ;mov ecx, buffer
+    ;mov edx, 2
+
+    ;push 12
+    ;push eax
+    ;call printf
+    
+    mov ebx, eax
+    call scanf_32
+    push eax                    ; Argumento 2
+    push ebx                    ; Argumento 1
     push precisao
     call soma
 
@@ -97,12 +134,14 @@ op_sub:
     push 10                    ; Argumento 1
     push precisao 
     call subtracao
-    
-    add esp, 9 ;ainda ajustar pra propria subtracao desempilhar
 
     push eax
     call mostra_resultado
     jmp Fim
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;FUNÇÕES DE CONVERSÃO;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 ; Função itoa: Converte um número em eax para uma string ASCII
 ; Recebe: eax = número, edi = endereço do buffer de saída
@@ -166,11 +205,149 @@ preencher_com_zeros:
     leave
     ret 8 ;endereco do buffer tem 4 bytes + 4 bytes do número
 
+; Recebe: [ebp+8] = ponteiro para a string de dígitos
+; Retorna:   eax = valor inteiro convertido
+%define pont_str_int [ebp+8]
+%define aux_eax [ebp-4]
+%define aux_ebx [ebp-8]
+%define aux_ecx [ebp-12]
+%define aux_edx [ebp-16]
+string_para_int:
+    enter 16,0
+
+    pusha
+
+    mov edx, pont_str_int  ; a string começa em ebp+8 
+
+    sub eax, eax           ; Inicializa o resultado para 0
+    sub ebx, ebx           ; ebx será o sinal (0 para positivo, 1 para negativo)
+
+    movzx ecx, byte [edx]  ; Primeiro caractere da string
+
+    cmp ecx, '-'           ; Olha o sinal
+    je  caso_neg          
+    jmp  prox_dig
+
+prox_dig:
+    test ecx, ecx          ; Testa se é o final da string (caractere nulo)
+    jz acabou              ; Se for, termina o loop
+
+    mov aux_eax, eax
+    mov aux_ebx, ebx
+    mov aux_ecx, ecx
+    mov aux_edx, edx
+
+    mov eax, 4
+    mov ebx, 0
+    mov ecx, msg_ecx
+    mov edx, tam_msg_ecx
+    int 80h
+
+    mov eax, 4
+    mov ebx, 0
+    mov ecx, aux_edx
+    mov edx, 1
+    int 80h
+
+    mov eax, aux_eax
+    mov ebx, aux_ebx
+    mov ecx, aux_ecx
+    mov edx, aux_edx
+
+    cmp ecx, byte 0xa            ; Testa se é o ENTER (13 ou 0x0D)
+    je acabou              ; Se for, termina o loop
+
+    sub ecx, '0'            ; Converte o caractere ASCII para o valor numérico
+    
+    mov aux_eax, eax
+    mov aux_ebx, ebx
+    mov aux_ecx, ecx
+    mov aux_edx, edx
+
+    mov eax, 4
+    mov ebx, 0
+    mov ecx, msg_ecx2
+    mov edx, tam_msg_ecx2
+    int 80h
+
+    mov eax, 4
+    mov ebx, 0
+    mov ecx, aux_edx 
+    mov edx, 1
+    int 80h
+
+    mov eax, aux_eax
+    mov ebx, aux_ebx
+    mov ecx, aux_ecx
+    mov edx, aux_edx
+    
+    imul eax, 10                 ; faz eax = eax*10 (desconsiderando o sinal) -> resto em edx.eax
+    add eax, ecx           ; Soma ao que já foi convertido eax = eax+ecx
+
+    mov aux_eax, eax
+    mov aux_ebx, ebx
+    mov aux_ecx, ecx
+    mov aux_edx, edx
+
+    push buffer
+    push eax
+    call itoa
+
+    mov eax, 4
+    mov ebx, 0
+    mov ecx, msg_res_so_far
+    mov edx, tam_msg_res_so_far
+    int 80h
+
+    mov eax, 4
+    mov ebx, 0
+    lea ecx, buffer ;endereço do ecx, então vai imprimir o ecx
+    mov edx, 1
+    int 80h
+
+    mov eax, aux_eax
+    mov ebx, aux_ebx
+    mov ecx, aux_ecx
+    mov edx, aux_edx
+
+    inc edx                ; Próximo char
+    movzx ecx, byte [edx] 
+    jmp prox_dig          
+
+caso_neg:
+    inc edx               ; Pula o '-'
+    movzx ecx, byte [edx]  
+    mov ebx, 1            ; Atualiza o sinal como negativo
+    jmp prox_dig      
+
+acabou:
+    test ebx, ebx           ; Testa o sinal
+    jnz inv_neg    ; Se for negativo, aplica o sinal
+
+    mov aux_eax, eax
+    popa
+    mov eax, aux_eax
+    leave
+    ret 4
+
+inv_neg:
+    neg   eax               ; Inverte o sinal para negativo
+
+    mov aux_eax, eax
+    popa
+    mov eax, aux_eax
+    leave
+    ret 4
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;FUNÇÕES DE ENTRADA E SAÍDA DE DADOS;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;Função printf: para saída de dadaos 
 ;Recebe: ponteiro para string e número de bytes a serem escritos
 ;Retorna: nada
-%define str dword [ebp+8]
 %define num_bytes dword [ebp+12]
+%define str dword [ebp+8]
 printf:
     push ebp
     mov ebp, esp
@@ -212,6 +389,101 @@ scanf_s:
     leave
     ret 8               ;ja desempilha os dois parametros str e num_bytes
 
+; Recebe: nada
+; Retorna: valor inteiro de 16bits em ax
+%define aux [ebp-11]
+scanf_16:
+    enter 11, 0   ; Considerando 5 chars + enter + final da string + eax
+
+    pusha
+
+    ;zera toda a string, inicialmente
+    mov ecx, 7             ; Número de bytes a serem preenchidos
+    mov edi, ebp            ; Endereço inicial do buffer
+    sub edi, 10             ; Esse de fato é o endereço e n o conteúdo ebp-10
+    sub al, al              ; Valor a ser inserido (zero)
+preencher_com_zeros_16:
+    mov [edi], al               ; Preenche o byte atual com zero
+    inc edi                     ; Avança para o próximo byte
+    loop preencher_com_zeros_16    ; Repete até que todos os bytes (7) sejam preenchidos
+
+    mov eax, 3       
+    mov ebx, 0       
+    lea ecx, [ebp-10] ; Maior número com sinal de 16bits: 32767
+    mov edx, 6        ; (5 dígitos + enter)
+    int 0x80
+
+    lea eax, [ebp-10]
+
+    ;confirmando que leu em char corretamente
+    mov aux, eax
+    push 6
+    push eax
+    call printf
+    mov eax, aux
+
+    push eax
+    ; Converte a string para um número inteiro
+    call string_para_int
+
+    ; Retorna o valor em ax
+    ;mov ax, dx
+
+    mov aux, eax
+    popa
+    mov eax, aux
+
+    leave
+    ret
+
+; Recebe: nada
+; Retorna: valor inteiro de 32bits em eax
+%define aux [ebp-16]
+scanf_32:
+    enter 16, 0   ; Considerando 10 chars + enter + final da string + eax
+
+    pusha
+
+    ;zera toda a string, inicialmente
+    mov ecx, 12             ; Número de bytes a serem preenchidos
+    mov edi, ebp            ; Endereço inicial do buffer
+    sub edi, 15             ; Esse de fato é o endereço e n o conteúdo ebp-15
+    sub al, al              ; Valor a ser inserido (zero)
+preencher_com_zeros_32:
+    mov [edi], al               ; Preenche o byte atual com zero
+    inc edi                     ; Avança para o próximo byte
+    loop preencher_com_zeros_32    ; Repete até que todos os bytes (12) sejam preenchidos
+
+    mov eax, 3       
+    mov ebx, 0       
+    lea ecx, [ebp-15] ; Maior número com sinal de 32bits: 2.147.483.647
+    mov edx, 11        ; (10 dígitos + enter)
+    int 0x80
+
+    ; Converte a string para um número inteiro
+    lea eax, [ebp-15]
+
+    ;confirmando que leu em char corretamente
+    ;push 11
+    ;push eax
+    ;call printf
+
+    push eax
+    call string_para_int
+
+    ; Retorna o valor em ax
+    ;mov ax, dx
+
+    mov aux, eax
+    popa
+    mov eax, aux
+
+    leave
+    ret
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;FUNÇÕES AUXILIARES;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;Função imprime_menu
 ; Recebe: nada
 ; Retorna: nada
