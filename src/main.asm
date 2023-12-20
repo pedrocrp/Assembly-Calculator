@@ -37,18 +37,24 @@ tam_msg_resultado EQU $-msg_resultado
 negativo_simbolo db '-'      ; String contendo o caractere '-'
 tam_negativo_simbolo EQU 1        ; Comprimento da string
 
-msg_res_so_far db "res_eax até agora", 0dH, 0ah
-tam_msg_res_so_far EQU $-msg_res_so_far
+nova_linha db 0dH, 0ah
+tam_nova_linha EQU $-nova_linha
 
-msg_ecx db "res_ecx agora - novo bit", 0dH, 0ah
-tam_msg_ecx EQU $-msg_ecx
+msg_op_n_implementada db "Operação não implementada", 0dH, 0ah
+tam_msg_op_n_implementada EQU $-msg_op_n_implementada
 
-msg_ecx2 db "res_ecx tirando '0'", 0dH, 0ah
-tam_msg_ecx2 EQU $-msg_ecx2
+;msg_res_so_far db "res_eax até agora", 0dH, 0ah
+;tam_msg_res_so_far EQU $-msg_res_so_far
+
+;msg_ecx db "res_ecx agora - novo bit", 0dH, 0ah
+;tam_msg_ecx EQU $-msg_ecx
+
+;msg_ecx2 db "res_ecx tirando '0'", 0dH, 0ah
+;tam_msg_ecx2 EQU $-msg_ecx2
 
 ; ariaveis auxiliares
 ;number_format db "%d", 10, 0  ; Formato para imprimir números, seguido de nova linha
-buffer db 12 dup(0)           ; Buffer para armazenar a string do número, ajuste o tamanho conforme necessário
+;buffer db 12 dup(0)           ; Buffer para armazenar a string do número, ajuste o tamanho conforme necessário
 
 section .bss
 ;variaveis globais (no contexto desse arquivo)
@@ -62,6 +68,10 @@ extern soma                   ; Assume que soma está em outro arquivo
 extern subtracao              ; Assume que subtracao está em outro arquivo
 global _start
 global itoa                   ; Torna a função itoa global
+global string_para_int
+global scanf_16
+global scanf_32
+global printf
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;MAIN;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -74,6 +84,7 @@ _start:
 
     call pergunta_precisao
 
+loop_menu:
     call imprime_menu
 
     ;obtem a opcao
@@ -86,6 +97,17 @@ _start:
     je op_soma
     cmp byte [opcao], 2
     je op_sub
+    cmp byte [opcao], 3
+    je op_mul
+    cmp byte [opcao], 4
+    je op_div
+    cmp byte [opcao], 5
+    je op_exp
+    cmp byte [opcao], 6
+    je op_mod
+    cmp byte [opcao], 7
+    je Fim
+
 
 ; Termina o programa
 Fim:
@@ -96,48 +118,45 @@ Fim:
     int 0x80
 
 op_soma:
-    ;push 20                    ; Argumento 2
-    ;push 10                    ; Argumento 1
-    call scanf_32
-
-    ;push 12
-    ;push eax
-    ;call printf
-
-    ;push buffer
-    ;push eax
-    ;call itoa
-
-    ;mov eax, 4
-    ;mov ebx, 0
-    ;mov ecx, buffer
-    ;mov edx, 2
-
-    ;push 12
-    ;push eax
-    ;call printf
-    
-    mov ebx, eax
-    call scanf_32
-    push eax                    ; Argumento 2
-    push ebx                    ; Argumento 1
     push precisao
     call soma
 
     push eax
     call mostra_resultado
 
-    jmp Fim
+    jmp loop_menu
 
 op_sub:
-    push 20                    ; Argumento 2
-    push 10                    ; Argumento 1
     push precisao 
     call subtracao
 
     push eax
     call mostra_resultado
-    jmp Fim
+    jmp loop_menu
+
+op_mul:
+    push tam_msg_op_n_implementada
+    push msg_op_n_implementada
+    call printf
+    jmp loop_menu
+
+op_div:
+    push tam_msg_op_n_implementada
+    push msg_op_n_implementada
+    call printf
+    jmp loop_menu
+
+op_exp:
+    push tam_msg_op_n_implementada
+    push msg_op_n_implementada
+    call printf
+    jmp loop_menu
+
+op_mod:
+    push tam_msg_op_n_implementada
+    push msg_op_n_implementada
+    call printf
+    jmp loop_menu
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;FUNÇÕES DE CONVERSÃO;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -232,83 +251,83 @@ prox_dig:
     test ecx, ecx          ; Testa se é o final da string (caractere nulo)
     jz acabou              ; Se for, termina o loop
 
-    mov aux_eax, eax
-    mov aux_ebx, ebx
-    mov aux_ecx, ecx
-    mov aux_edx, edx
+    ;mov aux_eax, eax
+    ;mov aux_ebx, ebx
+    ;mov aux_ecx, ecx
+    ;mov aux_edx, edx
 
-    mov eax, 4
-    mov ebx, 0
-    mov ecx, msg_ecx
-    mov edx, tam_msg_ecx
-    int 80h
+    ;mov eax, 4
+    ;mov ebx, 0
+    ;mov ecx, msg_ecx
+    ;mov edx, tam_msg_ecx
+    ;int 80h
 
-    mov eax, 4
-    mov ebx, 0
-    mov ecx, aux_edx
-    mov edx, 1
-    int 80h
+    ;mov eax, 4
+    ;mov ebx, 0
+    ;mov ecx, aux_edx
+    ;mov edx, 1
+    ;int 80h
 
-    mov eax, aux_eax
-    mov ebx, aux_ebx
-    mov ecx, aux_ecx
-    mov edx, aux_edx
+    ;mov eax, aux_eax
+    ;mov ebx, aux_ebx
+    ;mov ecx, aux_ecx
+    ;mov edx, aux_edx
 
     cmp ecx, byte 0xa            ; Testa se é o ENTER (13 ou 0x0D)
     je acabou              ; Se for, termina o loop
 
     sub ecx, '0'            ; Converte o caractere ASCII para o valor numérico
     
-    mov aux_eax, eax
-    mov aux_ebx, ebx
-    mov aux_ecx, ecx
-    mov aux_edx, edx
+    ;mov aux_eax, eax
+    ;mov aux_ebx, ebx
+    ;mov aux_ecx, ecx
+    ;mov aux_edx, edx
 
-    mov eax, 4
-    mov ebx, 0
-    mov ecx, msg_ecx2
-    mov edx, tam_msg_ecx2
-    int 80h
+    ;mov eax, 4
+    ;mov ebx, 0
+    ;mov ecx, msg_ecx2
+    ;mov edx, tam_msg_ecx2
+    ;int 80h
 
-    mov eax, 4
-    mov ebx, 0
-    mov ecx, aux_edx 
-    mov edx, 1
-    int 80h
+    ;mov eax, 4
+    ;mov ebx, 0
+    ;mov ecx, aux_edx 
+    ;mov edx, 1
+    ;int 80h
 
-    mov eax, aux_eax
-    mov ebx, aux_ebx
-    mov ecx, aux_ecx
-    mov edx, aux_edx
+    ;mov eax, aux_eax
+    ;mov ebx, aux_ebx
+    ;mov ecx, aux_ecx
+    ;mov edx, aux_edx
     
     imul eax, 10                 ; faz eax = eax*10 (desconsiderando o sinal) -> resto em edx.eax
     add eax, ecx           ; Soma ao que já foi convertido eax = eax+ecx
 
-    mov aux_eax, eax
-    mov aux_ebx, ebx
-    mov aux_ecx, ecx
-    mov aux_edx, edx
+    ;mov aux_eax, eax
+    ;mov aux_ebx, ebx
+    ;mov aux_ecx, ecx
+    ;mov aux_edx, edx
 
-    push buffer
-    push eax
-    call itoa
+    ;push buffer
+    ;push eax
+    ;call itoa
 
-    mov eax, 4
-    mov ebx, 0
-    mov ecx, msg_res_so_far
-    mov edx, tam_msg_res_so_far
-    int 80h
+    ;mov eax, 4
+    ;mov ebx, 0
+    ;mov ecx, msg_res_so_far
+    ;mov edx, tam_msg_res_so_far
+    ;int 80h
 
-    mov eax, 4
-    mov ebx, 0
-    lea ecx, buffer ;endereço do ecx, então vai imprimir o ecx
-    mov edx, 1
-    int 80h
+    ;mov eax, 4
+    ;mov ebx, 0
+    ;lea ecx, buffer ;endereço do ecx, então vai imprimir o ecx
+    ;mov edx, 1
+    ;int 80h
 
-    mov eax, aux_eax
-    mov ebx, aux_ebx
-    mov ecx, aux_ecx
-    mov edx, aux_edx
+    ;mov eax, aux_eax
+    ;mov ebx, aux_ebx
+    ;mov ecx, aux_ecx
+    ;mov edx, aux_edx
 
     inc edx                ; Próximo char
     movzx ecx, byte [edx] 
@@ -629,6 +648,10 @@ imprimir_string:
     jmp imprimir_string   ; Repete o processo para o próximo byte
 
 fim_impressao:
+
+    push tam_nova_linha
+    push nova_linha
+    call printf
 
     leave
     ret 4                   ; resultado (numérico)
