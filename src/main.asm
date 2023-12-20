@@ -130,6 +130,7 @@ op_soma:
     push eax
     call mostra_resultado
 
+    call aguarda_enter
     jmp loop_menu
 
 op_sub:
@@ -138,18 +139,20 @@ op_sub:
 
     push eax
     call mostra_resultado
+
+    call aguarda_enter
     jmp loop_menu
 
 op_mul:
     push precisao 
     call multiplicacao
-
+    call aguarda_enter
     jmp loop_menu
 
 op_div:
     push precisao 
     call divisao
-
+    call aguarda_enter
     jmp loop_menu
 
 op_exp:
@@ -160,13 +163,13 @@ op_exp:
 
     push precisao 
     call exponenciacao
-
+    call aguarda_enter
     jmp loop_menu
 
 op_mod:
     push precisao 
     call mod
-
+    call aguarda_enter
     jmp loop_menu
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -667,3 +670,23 @@ fim_impressao:
 
     leave
     ret 4                   ; resultado (numérico)
+
+; Recebe: nada
+; Retorna: nada
+%define buffer [ebp-4]
+aguarda_enter:
+    enter 4,0
+    pusha
+
+    lea esi, buffer
+
+    push 1
+    push esi
+    call scanf_s
+
+    cmp buffer, byte 0xa 
+    jne aguarda_enter
+
+    popa
+    leave
+    ret
