@@ -68,6 +68,7 @@ extern soma                   ; Assume que soma está em outro arquivo
 extern subtracao              ; Assume que subtracao está em outro arquivo
 extern multiplicacao
 extern divisao
+extern mod
 
 global _start
 global int_para_string                   ; Torna a função int_para_string global
@@ -157,9 +158,9 @@ op_exp:
     jmp loop_menu
 
 op_mod:
-    push tam_msg_op_n_implementada
-    push msg_op_n_implementada
-    call printf
+    push precisao 
+    call mod
+
     jmp loop_menu
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

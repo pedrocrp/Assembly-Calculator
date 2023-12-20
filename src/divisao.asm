@@ -1,8 +1,8 @@
 section .data
-    msg_arg1 db "Argumento 1: ", 0
+    msg_arg1 db "Dividendo: ", 0
     tam_msg_arg1 EQU $-msg_arg1
 
-    msg_arg2 db "Argumento 2: ", 0
+    msg_arg2 db "Divisor: ", 0
     tam_msg_arg2 EQU $-msg_arg2
 
 section .text

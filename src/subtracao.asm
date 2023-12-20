@@ -1,4 +1,7 @@
 section .data
+    msg_explicacao db "Assuma que será feito Argumento 1 - Argumento 2", 0dH, 0ah
+    tam_msg_explicacao EQU $-msg_explicacao
+
     msg_arg1 db "Argumento 1: ", 0
     tam_msg_arg1 EQU $-msg_arg1
 
@@ -23,6 +26,10 @@ subtracao:
     enter 12,0
 
     pusha
+
+    push tam_msg_explicacao
+    push msg_explicacao
+    call printf
 
     ; Verifica a precisao dos operandos
     movzx ecx, byte precisao  ; Indicador de precisao (0 ou 1)
