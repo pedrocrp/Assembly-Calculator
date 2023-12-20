@@ -619,7 +619,7 @@ mostra_resultado:
 
     ;mov esi, ebp
     ;sub dword esi, 12 ;esi = ebp-12 = endereco buffer_arg0
-    lea esi, buffer_arg0
+    lea esi, buffer_arg2
 
     push dword esi
     push resultado
@@ -679,13 +679,13 @@ aguarda_enter:
     pusha
 
     lea esi, buffer
-
+tenta_de_novo:
     push 1
     push esi
     call scanf_s
 
     cmp buffer, byte 0xa 
-    jne aguarda_enter
+    jne tenta_de_novo
 
     popa
     leave
