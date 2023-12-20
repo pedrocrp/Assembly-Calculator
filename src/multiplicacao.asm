@@ -5,12 +5,16 @@ section .data
     msg_arg2 db "Argumento 2: ", 0
     tam_msg_arg2 EQU $-msg_arg2
 
+    msg_overflow db "Ocorreu overflow!", 0dH, 0ah
+    tam_msg_overflow EQU $-msg_overflow
+
 section .text
     global multiplicacao
     extern scanf_16
     extern scanf_32
     extern string_para_int
     extern printf
+    extern mostra_resultado
 
 ; Função de Multiplicacao
 ; Argumentos: indicador de precisao (0 para 16 bits, 1 para 32 bits)
@@ -46,6 +50,8 @@ multiplicacao_16bits:
     call scanf_16
     mov arg2, ax
 
+    mov dx, word 0
+
     ; Realiza a soma de 16 bits
     movzx eax, word arg1 ; Argumento 1
     movzx ebx, word arg2 ; Argumento 2
@@ -67,6 +73,8 @@ multiplicacao_32bits:
     call scanf_32
     mov arg2, eax
 
+    mov edx, 0
+
     ; Realiza a soma de 32 bits
     mov eax, arg1 ; Argumento 1
     mov ebx, arg2 ; Argumento 2
@@ -74,15 +82,51 @@ multiplicacao_32bits:
     jmp end_function_32   
 
 end_function_16:
+    cmp dx, 0hFFFF
+    jne overflow_16
+
+alarme_falso_16:
     mov aux, ax
     popa
     movzx ax, aux
+
+    push eax
+    call mostra_resultado
+    leave
+    ret 4 
+
+overflow_16:
+    cmp dx, 0h0000
+    je alarme_falso_16
+
+    push tam_msg_overflow
+    push msg_overflow
+    call printf
+
     leave
     ret 4                
 
 end_function_32:
+    cmp edx, 0hFFFFFFFF
+    jne overflow_32
+
+alarme_falso_32:
     mov aux, eax
     popa
     mov eax, aux
+
+    push eax
+    call mostra_resultado
     leave
-    ret 4        
+    ret 4 
+
+overflow_32:
+    cmp edx, 0
+    je alarme_falso_32
+
+    push tam_msg_overflow
+    push msg_overflow
+    call printf
+
+    leave
+    ret 4       
