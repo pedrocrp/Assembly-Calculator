@@ -66,6 +66,8 @@ opcao resd 1
 section .text
 extern soma                   ; Assume que soma está em outro arquivo
 extern subtracao              ; Assume que subtracao está em outro arquivo
+extern multiplicacao
+
 global _start
 global itoa                   ; Torna a função itoa global
 global string_para_int
@@ -135,9 +137,11 @@ op_sub:
     jmp loop_menu
 
 op_mul:
-    push tam_msg_op_n_implementada
-    push msg_op_n_implementada
-    call printf
+    push precisao 
+    call multiplicacao
+
+    push eax
+    call mostra_resultado
     jmp loop_menu
 
 op_div:
