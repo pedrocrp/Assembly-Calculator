@@ -67,13 +67,15 @@ section .text
 extern soma                   ; Assume que soma está em outro arquivo
 extern subtracao              ; Assume que subtracao está em outro arquivo
 extern multiplicacao
+extern divisao
 
 global _start
-global itoa                   ; Torna a função itoa global
+global int_para_string                   ; Torna a função int_para_string global
 global string_para_int
 global scanf_16
 global scanf_32
 global printf
+global mostra_resultado
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;MAIN;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -140,14 +142,12 @@ op_mul:
     push precisao 
     call multiplicacao
 
-    push eax
-    call mostra_resultado
     jmp loop_menu
 
 op_div:
-    push tam_msg_op_n_implementada
-    push msg_op_n_implementada
-    call printf
+    push precisao 
+    call divisao
+
     jmp loop_menu
 
 op_exp:
@@ -166,13 +166,13 @@ op_mod:
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;FUNÇÕES DE CONVERSÃO;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-; Função itoa: Converte um número em eax para uma string ASCII
+; Função int_para_string: Converte um número em eax para uma string ASCII
 ; Recebe: eax = número, edi = endereço do buffer de saída
 ; Retorna: nada, mas o buffer em eax terá a string
 %define buffer_arg [ebp+12]
 %define numero [ebp+8]
 %define aux [ebp-4]
-itoa:
+int_para_string:
     enter 4,0
 
     pusha
@@ -314,7 +314,7 @@ prox_dig:
 
     ;push buffer
     ;push eax
-    ;call itoa
+    ;call int_para_string
 
     ;mov eax, 4
     ;mov ebx, 0
@@ -607,12 +607,13 @@ pergunta_precisao:
 mostra_resultado:
     enter 16, 0
 
-    mov esi, ebp
-    sub dword esi, 12 ;esi = ebp-12 = endereco buffer_arg0
+    ;mov esi, ebp
+    ;sub dword esi, 12 ;esi = ebp-12 = endereco buffer_arg0
+    lea esi, buffer_arg0
 
     push dword esi
     push resultado
-    call itoa                   ; Converte eax para string
+    call int_para_string                   ; Converte eax para string
     mov pont_string, eax        ;salva ponteiro para string
 
     ; Imprime a mensagem "Resultado"
