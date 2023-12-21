@@ -40,8 +40,8 @@ tam_negativo_simbolo EQU 1        ; Comprimento da string
 nova_linha db 0dH, 0ah
 tam_nova_linha EQU $-nova_linha
 
-msg_op_n_implementada db "Operação não implementada", 0dH, 0ah
-tam_msg_op_n_implementada EQU $-msg_op_n_implementada
+;msg_op_n_implementada db "Operação não implementada", 0dH, 0ah
+;tam_msg_op_n_implementada EQU $-msg_op_n_implementada
 
 ;msg_res_so_far db "res_eax até agora", 0dH, 0ah
 ;tam_msg_res_so_far EQU $-msg_res_so_far
@@ -87,6 +87,8 @@ global mostra_resultado
 _start:
     enter 8,0
     call boas_vindas
+
+    
 
     call pergunta_precisao
 
@@ -179,7 +181,7 @@ op_mod:
 ; Função int_para_string: Converte um número em eax para uma string ASCII
 ; Recebe: eax = número, edi = endereço do buffer de saída
 ; Retorna: nada, mas o buffer em eax terá a string
-%define buffer_arg [ebp+12]
+%define buffer_arg [ebp+20]
 %define numero [ebp+8]
 %define aux [ebp-4]
 int_para_string:
@@ -189,16 +191,19 @@ int_para_string:
     
     ;zera toda a string, inicialmente
     mov ecx, 12             ; Número de bytes a serem preenchidos
-    mov edi, ebp            ; Endereço inicial do buffer
-    add edi, 12             ; Esse de fato é o endereço e n o conteúdo ebp+12
+    ;mov edi, ebp            ; Endereço inicial do buffer
+    ;add edi, 12             ; Esse de fato é o endereço e n o conteúdo ebp+12
+    lea edi, buffer_arg
+
     sub al, al              ; Valor a ser inserido (zero)
 preencher_com_zeros:
     mov [edi], al               ; Preenche o byte atual com zero
     inc edi                     ; Avança para o próximo byte
     loop preencher_com_zeros    ; Repete até que todos os bytes (12) sejam preenchidos
 
-    mov edi, ebp                ; Endereço inicial do buffer
-    add edi, 12                 ; Esse de fato é o endereço e n o conteúdo ebp+12
+    ;mov edi, ebp                ; Endereço inicial do buffer
+    ;add edi, 12                 ; Esse de fato é o endereço e n o conteúdo ebp+12
+    lea edi, buffer_arg
 
     mov ebx, 10                 ; Divisor para a conversão de base
 
@@ -619,7 +624,7 @@ mostra_resultado:
 
     ;mov esi, ebp
     ;sub dword esi, 12 ;esi = ebp-12 = endereco buffer_arg0
-    lea esi, buffer_arg2
+    lea esi, buffer_arg0
 
     push dword esi
     push resultado
