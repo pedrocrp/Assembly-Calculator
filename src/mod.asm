@@ -25,8 +25,12 @@ mod:
 
     pusha
 
+    mov esi, precisao ;aqui é [ebp+8], que é o endereço da precisao
+
     ; Verifica a precisao dos operandos
-    movzx ecx, byte precisao  ; Indicador de precisao (0 ou 1)
+    movzx ecx, byte [esi]  ; Indicador de precisao (0 ou 1)
+    ;aqui é o [esi], que é o conteúdo do endereço precisao
+    
     cmp ecx, 0
     je mod_16bits
     jmp mod_32bits
