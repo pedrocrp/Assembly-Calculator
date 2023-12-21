@@ -86,9 +86,7 @@ global mostra_resultado
 %define resultado_eax [ebp-8]
 _start:
     enter 8,0
-    call boas_vindas
-
-    
+    call boas_vindas    
 
     call pergunta_precisao
 
@@ -454,18 +452,15 @@ preencher_com_zeros_16:
     lea eax, [ebp-10]
 
     ;confirmando que leu em char corretamente
-    mov aux, eax
-    push 6
-    push eax
-    call printf
-    mov eax, aux
+    ;mov aux, eax
+    ;push 6
+    ;push eax
+    ;call printf
+    ;mov eax, aux
 
     push eax
     ; Converte a string para um número inteiro
     call string_para_int
-
-    ; Retorna o valor em ax
-    ;mov ax, dx
 
     mov aux, eax
     popa
@@ -598,16 +593,33 @@ boas_vindas:
 pergunta_precisao:
     enter 0,0
 
+    pusha
+
     ;imprime "Vai trabalhar com 16 ou 32 bits (digite 0 para 16, e 1 para 32)"
     push tam_msg_precisao
     push msg_precisao
     call printf
 
+    lea eax, precisao
+
     ;salva a precisao
-    push byte 2
-    push dword precisao
+    push dword 2
+    push dword eax
     call scanf_s
     sub byte [precisao], 48        ; Transforma em ASCII
+    ;mov byte [precisao+1], 0;colocando 0 (final de string no lugar do enter)
+
+    cmp ecx, 0
+    ;je pula_print ;como pulou, significa que deu certo
+    ;push tam_msg_precisao
+    ;push msg_precisao
+    ;call printf
+;pula_print:    
+    ;push 3
+    ;push precisao
+    ;call printf
+
+    popa
 
     leave
     ret
