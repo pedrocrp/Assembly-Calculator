@@ -84,9 +84,10 @@ subtracao_32bits:
     jmp end_function_32  
 
 end_function_16:
+    mov aux, dword 0
     mov aux, ax
     popa
-    movzx ax, aux
+    movzx eax, word aux
     leave
     ret 12  
 

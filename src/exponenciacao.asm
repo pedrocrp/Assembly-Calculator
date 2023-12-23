@@ -106,9 +106,10 @@ end_function_16:
     jne overflow_16
 
 alarme_falso_16:
+    mov aux, dword 0
     mov aux, ax
     popa
-    movzx ax, aux
+    movzx eax, word aux
 
     push eax
     call mostra_resultado
