@@ -184,14 +184,25 @@ preencher_com_zeros:
     ;mov byte [ecx], 0           ; Caractere nulo no final
 
     ; Verifica se o número é negativo
+    cmp [precisao], byte 1
+    je caso_32
+    mov ax, word numero      ; Caso 16bits
+    test ax, 8000h           ; Testa o bit mais significativo de ax
+    jz positive               ; Se não for negativo, pula para a conversão positiva
+    neg ax                     ; Negativa o número negativo
+    mov byte [edi], '-'         ; Coloca sinal de menos no início do buffer
+    inc edi                     ; Move o ponteiro do buffer para a frente
+    jmp positive
+
+caso_32:
     mov eax, numero
     test eax, eax
-    jge .positive               ; Se não for negativo, pula para a conversão positiva
+    jge positive               ; Se não for negativo, pula para a conversão positiva
     neg eax                     ; Negativa o número negativo
     mov byte [edi], '-'         ; Coloca sinal de menos no início do buffer
     inc edi                     ; Move o ponteiro do buffer para a frente
 
-    .positive:
+positive:
     ; Loop para converter o número em string
     .repeat:
         dec ecx                 ; Move para trás no buffer
@@ -528,6 +539,20 @@ mostra_resultado:
 
     ; Imprime número convertido
     ; Verifica se o número é negativo
+    cmp [precisao], byte 1
+    je caso_32_res
+    mov ax, word resultado      ; Caso 16bits
+    test ax, 8000h           ; Testa o bit mais significativo de ax
+    jz iniciar_impressao       ; Se não for negativo, pula para a conversão positiva
+    ;se for negativo, imprime o sinal
+    mov eax, 4
+    mov ebx, 1
+    mov ecx, negativo_simbolo          ; Endereço do bsinal '-'
+    mov edx, tam_negativo_simbolo      ; Tamanho do sinal - 1 byte
+    int 0x80                     ; Move o ponteiro do buffer para a frente
+    jmp iniciar_impressao
+
+caso_32_res:
     mov eax, resultado
     test eax, eax
     jg iniciar_impressao
